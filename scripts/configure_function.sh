@@ -340,16 +340,45 @@ consul reload
 install_cilium_on_cluster () {
     helm repo add cilium https://helm.cilium.io/
     helm repo update
-    helm install cilium cilium/cilium --version $cilium_version --namespace kube-system \
+
+cat <<EOF >/tmp/bgp-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bgp-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    peers:
+      - peer-address:  172.22.101.2
+        peer-asn: 65002
+        my-asn: 65006
+    address-pools:
+      - name: default
+        protocol: bgp
+        addresses:
+          - 10.10.10.0/24
+EOF
+
+    kubectl apply -f /tmp/bgp-config.yaml
+    helm install cilium cilium/cilium --version $cilium_version \
+                                      --namespace kube-system \
 				      --set nodeinit.enabled=true \
 				      --set hostServices.enabled=false \
 				      --set externalIPs.enabled=true \
 				      --set nodePort.enabled=true \
 				      --set hostPort.enabled=true \
+				      --set bgp.enabled=true \
+				      --set bgp.announce.loadbalancerIP=true
 				      --set bpf.masquerade=false \
 				      --set image.pullPolicy=IfNotPresent \
 				      --set ipam.mode=kubernetes \
 				      --set kubeProxyReplacement=strict \
+				      --set tunnel=disabled \
+				      --set autoDirectNodeRoutes=true \
+				      --set loadBalancer.algorithm=maglev \
+				      --set loadBalancer.mode=dsr \
+				      --set loadBalancer.acceleration=native \
 				      --set hubble.listenAddress=":4244" \
 				      --set hubble.relay.enabled=true \
 				      --set hubble.ui.enabled=true \

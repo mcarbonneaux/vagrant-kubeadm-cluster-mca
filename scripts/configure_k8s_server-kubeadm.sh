@@ -26,6 +26,7 @@ cgroup_driver="systemd" # systemd, cgroupfs
 cni_runtime="docker" # docker and next cri-o
 k8s_overlay="cilium" # cilium, calico, flannel
 server_ip=$(ip --json -p addr show | jq -r '.[].addr_info[] | select(.local |test("172.22.")) | .local')
+export DEBIAN_FRONTEND=noninteractive
 
 # change server ip in host
 sed -ie  "s#127.0.2.1[[:blank:]]*"$HOSTNAME"[[:blank:]]"$HOSTNAME"#"$server_ip" "$HOSTNAME"#g"  /etc/hosts
