@@ -1,5 +1,12 @@
 # vagrant-kubeadm-cilium-ha
-Vagrant file to build kubernetes cluster high availibility + cilium
+Vagrant file to build kubernetes cluster high availibility + cilium + bgp 
+
+Is to test k8s in Multi-tier load-balancing configuration.
+- BGP ECMP with cilium/metallb (stateless)
+- L4 LoadBlancer DSR with Cilium and ebpf (stateless)
+- L7 LoadBlancer in pod (haproxy/envoy or nginx...) (StateFull)
+
+https://vincent.bernat.ch/en/blog/2018-multi-tier-loadbalancer
 
 # prerequirist
 
