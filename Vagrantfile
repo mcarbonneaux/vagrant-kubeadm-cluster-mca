@@ -1,5 +1,5 @@
 MASTER_COUNT = 3
-NODE_COUNT = 4
+NODE_COUNT = 0
 IMAGE = "ubuntu/hirsute64"
 CILIUM_VERSION = "1.10.1"
 CILIUM_PASSWORD = "admin"
