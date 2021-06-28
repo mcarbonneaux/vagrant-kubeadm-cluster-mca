@@ -12,6 +12,7 @@ https://vincent.bernat.ch/en/blog/2018-multi-tier-loadbalancer
 
 - [vagrant](https://www.vagrantup.com/downloads)
 - [virtualbox](https://www.virtualbox.org/wiki/Downloads)
+- [git](https://git-scm.com/download/win)
 
 # Start the cluster
 
