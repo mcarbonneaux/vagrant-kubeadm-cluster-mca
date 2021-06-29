@@ -380,6 +380,7 @@ EOF
 				      --set kubeProxyReplacement=strict \
 				      --set tunnel=disabled \
 				      --set autoDirectNodeRoutes=true \
+				      --set native-routing-cidr=10.20.0.0/16 \
 				      --set loadBalancer.algorithm=maglev \
 				      --set loadBalancer.mode=dsr \
 				      --set loadBalancer.acceleration=native  \

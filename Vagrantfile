@@ -17,6 +17,7 @@ K8S_VERSION = "1.20.8"
 Vagrant.configure("2") do |config|
   config.vm.box = IMAGE 
   config.ssh.forward_agent = false
+  config.vm.boot_timeout = 600
 
   config.vm.define "router" do |v|
     v.vm.network :private_network, ip: USER_IPS+"2", virtualbox__intnet: "user_network", nic_type: NETWORK_TYPE
