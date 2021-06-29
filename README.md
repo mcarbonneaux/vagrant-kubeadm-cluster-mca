@@ -18,7 +18,7 @@ https://vincent.bernat.ch/en/blog/2018-multi-tier-loadbalancer
 
 ```
 # git clone https://github.com/mcarbonneaux/vagrant-kubeadm-cluster-mca
-# cd vagrant-kubeadm-cilium-ha
+# cd vagrant-kubeadm-cluster-mca
 # vagrant up
 ```
 
