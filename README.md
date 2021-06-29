@@ -17,6 +17,7 @@ https://vincent.bernat.ch/en/blog/2018-multi-tier-loadbalancer
 # Start the cluster
 
 ```
+# ssh-keygen -f ./.ssh/id_rsa
 # git clone https://github.com/mcarbonneaux/vagrant-kubeadm-cluster-mca.git
 # cd vagrant-kubeadm-cluster-mca
 # vagrant up
