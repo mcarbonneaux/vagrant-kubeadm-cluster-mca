@@ -65,6 +65,19 @@ systemctl daemon-reload
 systemctl restart docker
 }
 
+# haproxy k8s api server load balancer based on consul discovery
+install_haproxy () {
+
+apt-get install -y haproxy
+
+cp -f /vagrant/haproxy.cfg /etc/haproxy/haproxy-k8s.cfg
+sed -ie "s/bind[[:blank:]].*:8443/bind $1:8443/g" /etc/haproxy/haproxy-k8s.cfg
+echo CONFIG="/etc/haproxy/haproxy-k8s.cfg" >/etc/default/haproxy
+
+systemctl enable haproxy
+systemctl restart haproxy
+
+}
 
 # install dnsmasq to forward resolution to consul dns
 install_dnsmasq_forwarder () {
@@ -135,8 +148,8 @@ install_consul() {
 }
 install_consul_server() {
   install_consul
-if [ "$2" -eq 1 ]; then 
-echo $1 >/vagrant/.consultbootip
+consultbootip=$(seq 1 $2 | xargs -I{} -n1 echo "\"172.22.101.10{}\"" | (readarray -t ARRAY; IFS=','; echo "${ARRAY[*]}"))
+echo $consultbootip >/vagrant/.consultbootip
 cat <<EOF >/etc/consul.d/consul.hcl
 data_dir = "/opt/consul"
 ui_config{
@@ -144,22 +157,12 @@ ui_config{
 }
 server = true
 bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"172.22.101.0/24\" | attr \"address\" }}"
-bootstrap_expect=1
+retry_join = [${consultbootip}]
+#bootstrap_expect=1
 encrypt = "uHOOH0Wj6LrF6vRbC+zg0Sa6ayzQwZ0ykIxNadmn2Hw="
 EOF
-else
-consultbootip=$(cat /vagrant/.consultbootip)
-cat <<EOF >/etc/consul.d/consul.hcl
-data_dir = "/opt/consul"
-ui_config{
-   enabled = true
-}
-server = true
-bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"172.22.101.0/24\" | attr \"address\" }}"
-bootstrap_expect=1
-retry_join = ["${consultbootip}"]
-encrypt = "uHOOH0Wj6LrF6vRbC+zg0Sa6ayzQwZ0ykIxNadmn2Hw="
-EOF
+if [ "$3" -eq 1 ]; then
+  sed -ie "s/#bootstrap_expect=1/bootstrap_expect=1/g" /etc/consul.d/consul.hcl
 fi
    systemctl start consul.service
 }
@@ -168,7 +171,7 @@ install_consul_agent() {
 cat <<EOF >/etc/consul.d/consul.hcl
 data_dir = "/opt/consul"
 bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"172.22.101.0/24\" | attr \"address\" }}"
-retry_join = ["$consultbootip"]
+retry_join = [${consultbootip}]
 encrypt = "uHOOH0Wj6LrF6vRbC+zg0Sa6ayzQwZ0ykIxNadmn2Hw="
 EOF
    systemctl start consul.service
@@ -220,16 +223,19 @@ pull_certificate () {
 
 # create the kubernetes cluster
 configure_kubeadm_create_cluster () {
+  server_ip=$1
+  apiserver_port=$2
+  k8s_version=$3
+  server_max_number=$4
+
 cat <<EOF >/etc/consul.d/k8sapi.json
 {
   "service": {
-  "id": "k8s-api-servers-1",
+  "id": "k8s-api-servers-${server_ip}",
   "name": "k8s-server-api",
   "port": 6443,
   "check": {
-    "id": "apiserver_tcp_check",
-    "name": "Check api server",
-    "tcp": "localhost:6443",
+    "tcp": "localhost:22",
     "interval": "10s",
     "timeout": "1s"
   }
@@ -238,20 +244,20 @@ cat <<EOF >/etc/consul.d/k8sapi.json
 EOF
 consul reload
 
-  additionalsan=$(seq 1 $4 | xargs -I{} -n1 echo "server-{},172.22.101.10{}" | (readarray -t ARRAY; IFS=','; echo "${ARRAY[*]}"))
+  additionalsan=$(seq 1 $server_max_number | xargs -I{} -n1 echo "server-{},172.22.101.10{}" | (readarray -t ARRAY; IFS=','; echo "${ARRAY[*]}"))
 
   # pull kubernetes images
   kubeadm config images pull --kubernetes-version=$k8s_version
 
   CERT_KEY=$(kubeadm certs certificate-key)
 
-  kubeadm init --apiserver-advertise-address=$1 \
-               --apiserver-bind-port=$2 \
-	       --apiserver-cert-extra-sans "$additionalsan,k8s-server-api.service.dc1.consul" \
-	       --control-plane-endpoint k8s-server-api.service.dc1.consul:$2 \
+  kubeadm init --apiserver-advertise-address=$server_ip \
+               --apiserver-bind-port=$apiserver_port \
+	       --apiserver-cert-extra-sans "$additionalsan,localhost,k8s-server-api.service.dc1.consul" \
+	       --control-plane-endpoint k8s-server-api.service.dc1.consul:8443 \
 	       --pod-network-cidr="10.10.0.0/16" \
 	       --service-cidr="10.11.0.0/16" \
-	       --kubernetes-version=$3 \
+	       --kubernetes-version=$k8s_version \
                --skip-phases=addon/kube-proxy \
 	       --certificate-key $CERT_KEY \
 	       --upload-certs
@@ -270,7 +276,7 @@ consul reload
   cp -f /etc/kubernetes/admin.conf /vagrant/.kubeconfig
 
   # share master api ip:port
-  echo "k8s-server-api.service.dc1.consul:$2" >/vagrant/.kubeapiserver
+  echo "k8s-server-api.service.dc1.consul:8443" >/vagrant/.kubeapiserver
 
   #to fix kubectl get cs error
   sed -ie "/\- \-\-port=0/d" /etc/kubernetes/manifests/kube-controller-manager.yaml \
@@ -286,16 +292,18 @@ consul reload
 
 # join the cluster
 configure_kubeadm_join_cluster () {
+  server_ip=$1
+  apiserver_port=$2
+  k8s_version=$3
+  server_max_number=$4
 cat <<EOF >/etc/consul.d/k8sapi.json
 {
   "service": {
-  "id": "k8s-api-servers-1",
+  "id": "k8s-api-servers-${server_ip}",
   "name": "k8s-server-api",
   "port": 6443,
   "check": {
-    "id": "apiserver_tcp_check",
-    "name": "Check api server",
-    "tcp": "localhost:6443",
+    "tcp": "localhost:22",
     "interval": "10s",
     "timeout": "1s"
   }
@@ -310,10 +318,6 @@ consul reload
   # retrieve master api certificat
   pull_certificate
 
-  server_ip=$1
-  apiserver_port=$2
-  k8s_version=$3
-  server_max_number=$4
   if [ "$5" == "control-plane" ]; then 
   # join the cluster in controle plane mode
   kubeadm join $(cat /vagrant/.kubeapiserver) \
@@ -369,7 +373,7 @@ EOF
 				      --set nodePort.enabled=true \
 				      --set hostPort.enabled=true \
 				      --set bgp.enabled=true \
-				      --set bgp.announce.loadbalancerIP=true
+				      --set bgp.announce.loadbalancerIP=true \
 				      --set bpf.masquerade=false \
 				      --set image.pullPolicy=IfNotPresent \
 				      --set ipam.mode=kubernetes \
@@ -378,7 +382,7 @@ EOF
 				      --set autoDirectNodeRoutes=true \
 				      --set loadBalancer.algorithm=maglev \
 				      --set loadBalancer.mode=dsr \
-				      --set loadBalancer.acceleration=native \
+				      --set loadBalancer.acceleration=native  \
 				      --set hubble.listenAddress=":4244" \
 				      --set hubble.relay.enabled=true \
 				      --set hubble.ui.enabled=true \

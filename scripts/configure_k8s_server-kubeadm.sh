@@ -50,8 +50,9 @@ install-docker-io  $cgroup_driver
 install_helm3
 install_cilium_cli $cilium_version
 install_kubetool $k8s_version
-install_consul_server $server_ip $server_number
+install_consul_server $server_ip $server_max_number $server_number
 install_dnsmasq_forwarder $server_number
+install_haproxy $server_ip
 
 # config kubelet
 echo "KUBELET_EXTRA_ARGS='--node-ip=${server_ip}  --container-runtime=$cni_runtime  --cgroup-driver=$cgroup_driver'" > /etc/default/kubelet

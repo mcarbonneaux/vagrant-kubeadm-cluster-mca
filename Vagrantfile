@@ -1,6 +1,8 @@
 MASTER_COUNT = 3
 NODE_COUNT = 0
 IMAGE = "ubuntu/hirsute64"
+#NETWORK_TYPE = "82545EM"
+NETWORK_TYPE = "virtio"
 CILIUM_VERSION = "1.10.1"
 CILIUM_PASSWORD = "admin"
 USER_IPS = "172.22.100."
@@ -17,8 +19,8 @@ Vagrant.configure("2") do |config|
   config.ssh.forward_agent = false
 
   config.vm.define "router" do |v|
-    v.vm.network :private_network, ip: USER_IPS+"2", virtualbox__intnet: "user_network"
-    v.vm.network :private_network, ip: K8S_SERVER_IPS+"2", virtualbox__intnet: "dc_network", :mac=> "001122334455"
+    v.vm.network :private_network, ip: USER_IPS+"2", virtualbox__intnet: "user_network", nic_type: NETWORK_TYPE
+    v.vm.network :private_network, ip: K8S_SERVER_IPS+"2", virtualbox__intnet: "dc_network", :mac=> "001122334455", nic_type: NETWORK_TYPE
     v.vm.hostname = "router"
     v.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
@@ -30,7 +32,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "user" do |v|
-    v.vm.network :private_network, ip: USER_IPS+"3", virtualbox__intnet: "user_network"
+    v.vm.network :private_network, ip: USER_IPS+"3", virtualbox__intnet: "user_network", nic_type: NETWORK_TYPE
     v.vm.hostname = "user"
     v.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
@@ -45,13 +47,20 @@ Vagrant.configure("2") do |config|
     config.vm.define "server-#{i}" do |server|
       server.vm.box = IMAGE
       server.vm.hostname = "server-#{i}"
-      server.vm.network  :private_network, ip: K8S_SERVER_IPS+"#{i+100}", virtualbox__intnet: "dc_network", nic_type: "82545EM"
+      server.vm.network  :private_network, ip: K8S_SERVER_IPS+"#{i+100}", virtualbox__intnet: "dc_network", nic_type: NETWORK_TYPE
       server.vm.provider :virtualbox do |v|
 	v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
 	v.linked_clone = true 
 	v.cpus = 2
 	v.memory = K8S_SERVER_MEMORY
       end
+
+      # nat using vagrant generic way
+      # this nat expose k8s server port on localhost:6443
+      # you can use kubeconfig from host to hist url
+      server.vm.network "forwarded_port", guest: 6443, host: 6443, auto_correct: true
+      server.vm.network "forwarded_port", guest: 8500, host: 8500, auto_correct: true
+
       server.vm.provision "file", source: "./.ssh/id_rsa.pub", destination: "/tmp/id_rsa.pub"
       server.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
       server.vm.provision "shell", path: "scripts/configure_k8s_server-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT]
@@ -62,7 +71,7 @@ Vagrant.configure("2") do |config|
     config.vm.define "node-#{i}" do |kubenodes|
       kubenodes.vm.box = IMAGE
       kubenodes.vm.hostname = "node-#{i}"
-      kubenodes.vm.network  :private_network, ip: K8S_NODE_IPS + "#{i+110}", virtualbox__intnet: "dc_network", nic_type: "82545EM"
+      kubenodes.vm.network  :private_network, ip: K8S_NODE_IPS + "#{i+110}", virtualbox__intnet: "dc_network", nic_type: NETWORK_TYPE
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa.pub", destination: "/tmp/id_rsa.pub"
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
       kubenodes.vm.provision "shell", path: "scripts/configure_k8s_nodes-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT]
