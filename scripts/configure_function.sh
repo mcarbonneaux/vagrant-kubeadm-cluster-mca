@@ -80,30 +80,34 @@ systemctl restart haproxy
 }
 
 # install dnsmasq to forward resolution to consul dns
-install_dnsmasq_forwarder () {
+install_dns_forwarder () {
+dnslist=$(seq 1 $1 | xargs -I{} -n1 echo "172.22.101.10{}" | (readarray -t ARRAY; IFS=' '; echo "${ARRAY[*]}"))
+sed -ie "s/^#DNS=$/DNS=${dnslist}/g"  /etc/systemd/resolved.conf
+systemctl restart systemd-resolved.service
 
+}
+
+# install dnsmasq to forward resolution to consul dns
+install_dnsmasq_server () {
 apt-get install -y dnsmasq
-
-if [ "$1" -eq 1 ]; then 
+seq 1 $1 | xargs -I{} -n1 echo "172.22.101.10{} k8s-server-api.service.dc1.consul" >/etc/dnsmasq.hosts
 cat <<EOF >/etc/dnsmasq.conf
-server=/consul/127.0.0.1#8600
+except-interface=lo
+no-resolv
+no-hosts
+log-queries
+addn-hosts=/etc/dnsmasq.hosts
+server=/^((?!k8s).)*consul$/127.0.0.1#8600
 server=10.0.2.3
 EOF
-else
-cat <<EOF >/etc/dnsmasq.conf
-server=/consul/172.22.101.101
-server=10.0.2.3
-EOF
-fi
 
 systemctl enable dnsmasq
 systemctl restart dnsmasq
 
-sed -ie "s/^#DNS=$/DNS=127.0.0.1/g"  /etc/systemd/resolved.conf
-
 systemctl restart systemd-resolved.service
 
 }
+
 
 
 # install docker-ce
