@@ -95,3 +95,6 @@ Forwarding ports...
 ```
 
 for exemple for this vm you can access to the vm using `localhost` and port `2200`.
+
+the user are `vagrant` and the password `vagrant`.
+
