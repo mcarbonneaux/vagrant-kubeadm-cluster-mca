@@ -365,7 +365,7 @@ data:
       - name: default
         protocol: bgp
         addresses:
-          - 10.10.10.0/24
+          - 10.10.10.1-10.10.10.254
 EOF
 
     kubectl apply -f /tmp/bgp-config.yaml

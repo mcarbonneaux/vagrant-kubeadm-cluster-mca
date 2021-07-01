@@ -1,5 +1,5 @@
 MASTER_COUNT = 3
-NODE_COUNT = 0
+NODE_COUNT = 3
 IMAGE = "ubuntu/hirsute64"
 NETWORK_TYPE = "82545EM"
 #NETWORK_TYPE = "virtio"
@@ -13,6 +13,10 @@ K8S_NODE_IPS = "172.22.101."
 #K8S_VERSION = "1.21.2"
 #K8S_VERSION = "1.19.12"
 K8S_VERSION = "1.20.8"
+
+$change_default_route = <<-SCRIPT
+route add -net 172.22.100.0/24 gw 172.22.101.2
+SCRIPT
 
 Vagrant.configure("2") do |config|
   config.vm.box = IMAGE 
@@ -64,6 +68,7 @@ Vagrant.configure("2") do |config|
 
       server.vm.provision "file", source: "./.ssh/id_rsa.pub", destination: "/tmp/id_rsa.pub"
       server.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
+      server.vm.provision "Force default route to the bgp router", type: "shell", run: "always", inline: $change_default_route 
       server.vm.provision "shell", path: "scripts/configure_k8s_server-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT]
     end
   end
@@ -75,6 +80,7 @@ Vagrant.configure("2") do |config|
       kubenodes.vm.network  :private_network, ip: K8S_NODE_IPS + "#{i+110}", virtualbox__intnet: "dc_network", nic_type: NETWORK_TYPE
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa.pub", destination: "/tmp/id_rsa.pub"
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
+      kubenodes.vm.provision "Force default route to the bgp router", type: "shell", run: "always", inline: $change_default_route 
       kubenodes.vm.provision "shell", path: "scripts/configure_k8s_nodes-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT]
       kubenodes.vm.provider "virtualbox" do |v|
         v.linked_clone = true
