@@ -38,6 +38,11 @@ kubectl are already configured and you are sudoed to root.
 # kubectl get node
 ```
 
+# Test plateform schema
+
+![image](schema.png)
+
+
 # to create simple web pod (nginx) with loadbalancer dsr
 
 the k8s cluster are already configured to support loadbalancer type.
