@@ -43,7 +43,7 @@ kubectl are already configured and you are sudoed to root.
 ![image](schema.png)
 
 
-# to create simple web pod (nginx) with loadbalancer dsr
+# To create simple web pod (nginx) with loadbalancer dsr
 
 the k8s cluster are already configured to support loadbalancer type.
 
@@ -67,7 +67,7 @@ test-lb      LoadBalancer   10.11.180.200   10.10.10.1    80:31490/TCP   46m
 
 you can seen your lb as external ip : 10.10.10.1
 
-# to test the loadbalancer dsr throug the bgp router
+# To test the loadbalancer dsr throug the bgp router
 
 ```
 # vagrant ssh user
