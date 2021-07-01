@@ -85,3 +85,13 @@ you while seen the node name in response:
 ```
 nginx-69ddf6b8c9-6kjf9
 ```
+
+# To connect on different vm with ssh
+
+search in vagrant log line like :
+```
+Forwarding ports...                      
+22 (guest) => 2200 (host) (adapter 1)    
+```
+
+for exemple for this vm you can access to the vm using `localhost` and port `2200`.
