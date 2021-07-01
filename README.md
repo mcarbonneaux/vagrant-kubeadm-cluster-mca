@@ -51,7 +51,7 @@ you need juste to create pod with loadbalancer type.
 
 - https://docs.cilium.io/en/v1.10/gettingstarted/bgp/#create-loadbalancer-and-backend-pods
 
-
+Excute this command on any k8s cluster nodes (worker or controle plane)
 ```
 # kubectl create configmap nginx-default --from-file=/vagrant/test/nginx/default.conf
 # kubectl create configmap nginx-index --from-file=/vagrant/test/nginx/index.html
