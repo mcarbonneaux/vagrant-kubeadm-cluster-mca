@@ -18,6 +18,17 @@ $change_default_route = <<-SCRIPT
 route add -net 172.22.100.0/24 gw 172.22.101.2
 SCRIPT
 
+$addvirtualiptouser = <<-SCRIPT
+ip addr add 172.22.100.50/24 dev enp0s8 || true
+ip addr add 172.22.100.51/24 dev enp0s8 || true
+ip addr add 172.22.100.52/24 dev enp0s8 || true
+ip addr add 172.22.100.53/24 dev enp0s8 || true
+ip addr add 172.22.100.54/24 dev enp0s8 || true
+ip addr add 172.22.100.55/24 dev enp0s8 || true
+exit 0
+SCRIPT
+
+
 Vagrant.configure("2") do |config|
   config.vm.box = IMAGE 
   config.ssh.forward_agent = false
@@ -45,6 +56,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 1
       v.memory = 512
     end
+    v.vm.provision "add virtual ip", type: "shell", run: "always", inline: $addvirtualiptouser  
     v.vm.provision "Bring up demo client IPs", type: "shell", path: "scripts/configure-vagrant-user.sh"
   end
 

@@ -48,43 +48,9 @@ you need juste to create pod with loadbalancer type.
 
 
 ```
-apiVersion: v1
-kind: Service
-metadata:
-  name: test-lb
-spec:
-  type: LoadBalancer
-  ports:
-  - port: 80
-    targetPort: 80
-    protocol: TCP
-    name: http
-  selector:
-    svc: test-lb
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx
-spec:
-  selector:
-    matchLabels:
-      svc: test-lb
-  template:
-    metadata:
-      labels:
-        svc: test-lb
-    spec:
-      containers:
-      - name: web
-        image: nginx
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 80
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
+# kubectl create configmap nginx-default --from-file=/vagrant/test/nginx/default.conf
+# kubectl create configmap nginx-index --from-file=/vagrant/test/nginx/index.html
+# kubectl apply -f /vagrant/test/nginx/testlb.yaml
 ```
 
 ```
@@ -101,11 +67,16 @@ you can seen your lb as external ip : 10.10.10.1
 ```
 # vagrant ssh user
 # sudo -s
-# curl -v http://10.10.10.1 --interface 172.22.100.3
-# curl -v http://10.10.10.1 --interface 172.22.100.50
-# curl -v http://10.10.10.1 --interface 172.22.100.51
-# curl -v http://10.10.10.1 --interface 172.22.100.52
-# curl -v http://10.10.10.1 --interface 172.22.100.53
-# curl -v http://10.10.10.1 --interface 172.22.100.54
-# curl -v http://10.10.10.1 --interface 172.22.100.55
+# curl -s http://10.10.10.1 --interface 172.22.100.3
+# curl -s http://10.10.10.1 --interface 172.22.100.50
+# curl -s http://10.10.10.1 --interface 172.22.100.51
+# curl -s http://10.10.10.1 --interface 172.22.100.52
+# curl -s http://10.10.10.1 --interface 172.22.100.53
+# curl -s http://10.10.10.1 --interface 172.22.100.54
+# curl -s http://10.10.10.1 --interface 172.22.100.55
+```
+
+you while seen the node name in response:
+```
+nginx-69ddf6b8c9-6kjf9
 ```

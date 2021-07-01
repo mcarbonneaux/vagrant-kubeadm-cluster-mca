@@ -1,12 +1,5 @@
 #!/bin/bash -e
 
-ip addr add 172.22.100.50/24 dev enp0s8 || true
-ip addr add 172.22.100.51/24 dev enp0s8 || true
-ip addr add 172.22.100.52/24 dev enp0s8 || true
-ip addr add 172.22.100.53/24 dev enp0s8 || true
-ip addr add 172.22.100.54/24 dev enp0s8 || true
-ip addr add 172.22.100.55/24 dev enp0s8 || true
-
 apt-get update
 apt-get install -y bird2 traceroute
 
