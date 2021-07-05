@@ -35,7 +35,7 @@ Vagrant.configure("2") do |config|
   config.vm.boot_timeout = 600
 
   config.vm.define "router" do |v|
-    v.vm.network :private_network, ip: USER_IPS+"2", virtualbox__intnet: "user_network", nic_type: NETWORK_TYPE
+    v.vm.network :private_network, ip: USER_IPS+"2", nic_type: NETWORK_TYPE
     v.vm.network :private_network, ip: K8S_SERVER_IPS+"2", virtualbox__intnet: "dc_network", :mac=> "001122334455", nic_type: NETWORK_TYPE
     v.vm.hostname = "router"
     v.vm.provider :virtualbox do |v|
@@ -48,7 +48,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "user" do |v|
-    v.vm.network :private_network, ip: USER_IPS+"3", virtualbox__intnet: "user_network", nic_type: NETWORK_TYPE
+    v.vm.network :private_network, ip: USER_IPS+"3", nic_type: NETWORK_TYPE
     v.vm.hostname = "user"
     v.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]

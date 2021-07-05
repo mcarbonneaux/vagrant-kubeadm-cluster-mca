@@ -80,3 +80,20 @@ you while seen the node name in response:
 ```
 nginx-69ddf6b8c9-6kjf9
 ```
+
+# to join 10.10.10.0/24 network from host
+
+user network are host-only network and are joinable from host.
+
+you need juste to add route to router user network ip to join network behind router who route.
+
+on windows in admin shell :
+```
+# route add 10.10.10.0/24  172.22.100.2
+```
+
+on linux root shell :
+```
+# route add -net 10.10.10.0/24 gw 172.22.100.2
+```
+

@@ -1,5 +1,14 @@
+# configure sshd to enable to log on port forwarded port (see in vagrant log) with user/pass
+# all vagrant box had :
+# - user: vagrant 
+# - pass: vagrant
+configure_sshd () {
+  sed -ie "s/^PasswordAuthentication.*$/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+  systemctl restart sshd
+}
+
+# disable ubuntu system firewall and switch nftables to iptables (k8s are not ready for nftables)
 configure_firewall() {
-# disable ubuntu firewall
 ufw disable
 
 # switch nftable to iptable
@@ -11,13 +20,13 @@ update-alternatives --set arptables /usr/sbin/arptables-legacy
 update-alternatives --set ebtables /usr/sbin/ebtables-legacy
 }
 
-# disable swap
+# disable swap (to avoid swaping, and let k8s to manage ressource)
 disable_swap () {
 swapon -s
 swapoff -a
 }
 
-# check ebpf mount
+# check ebpf mount needed by cilium
 config_ebpf_mount () {
 if [ $(mount | grep /sys/fs/bpf | wc -l) -eq 0 ]; then
 echo "Add BPF mount..."
@@ -28,6 +37,7 @@ EOF
 fi
 }
 
+# k8s kernel tunning needed for docker
 # https://kubernetes.io/fr/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#permettre-%C3%A0-iptables-de-voir-le-trafic-pont%C3%A9
 install_kernel_module () {
 cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
@@ -39,13 +49,14 @@ modprobe overlay
 modprobe br_netfilter
 cat > /etc/sysctl.d/99-kubernetes-cri.conf <<EOF
 net.ipv4.ip_forward                 = 1
+net.ipv6.ip_forward                 = 1
 net.bridge.bridge-nf-call-iptables  = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 EOF
 sysctl --system
 }
 
-# install docker.io
+# install ubuntu version of docker: docker.io
 install-docker-io () {
 apt-get install -y docker.io
 mkdir -p /etc/docker
@@ -65,52 +76,7 @@ systemctl daemon-reload
 systemctl restart docker
 }
 
-# haproxy k8s api server load balancer based on consul discovery
-install_haproxy () {
-
-apt-get install -y haproxy
-
-cp -f /vagrant/haproxy.cfg /etc/haproxy/haproxy-k8s.cfg
-sed -ie "s/bind[[:blank:]].*:8443/bind $1:8443/g" /etc/haproxy/haproxy-k8s.cfg
-echo CONFIG="/etc/haproxy/haproxy-k8s.cfg" >/etc/default/haproxy
-
-systemctl enable haproxy
-systemctl restart haproxy
-
-}
-
-# install dnsmasq to forward resolution to consul dns
-install_dns_forwarder () {
-dnslist=$(seq 1 $1 | xargs -I{} -n1 echo "172.22.101.10{}" | (readarray -t ARRAY; IFS=' '; echo "${ARRAY[*]}"))
-sed -ie "s/^#DNS=$/DNS=${dnslist}/g"  /etc/systemd/resolved.conf
-systemctl restart systemd-resolved.service
-
-}
-
-# install dnsmasq to forward resolution to consul dns
-install_dnsmasq_server () {
-apt-get install -y dnsmasq
-seq 1 $1 | xargs -I{} -n1 echo "172.22.101.10{} k8s-server-api.service.dc1.consul" >/etc/dnsmasq.hosts
-cat <<EOF >/etc/dnsmasq.conf
-except-interface=lo
-no-resolv
-no-hosts
-log-queries
-addn-hosts=/etc/dnsmasq.hosts
-server=/^((?!k8s).)*consul$/127.0.0.1#8600
-server=10.0.2.3
-EOF
-
-systemctl enable dnsmasq
-systemctl restart dnsmasq
-
-systemctl restart systemd-resolved.service
-
-}
-
-
-
-# install docker-ce
+# install docker-ce from docker
 install-docker-ce () {
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
@@ -136,6 +102,48 @@ EOF
 systemctl enable docker
 systemctl daemon-reload
 systemctl restart docker
+}
+
+# haproxy to load balance k8s api server based on consul discovery
+install_haproxy () {
+
+apt-get install -y haproxy
+
+cp -f /vagrant/haproxy.cfg /etc/haproxy/haproxy-k8s.cfg
+sed -ie "s/bind[[:blank:]].*:8443/bind $1:8443/g" /etc/haproxy/haproxy-k8s.cfg
+echo CONFIG="/etc/haproxy/haproxy-k8s.cfg" >/etc/default/haproxy
+
+systemctl enable haproxy
+systemctl restart haproxy
+
+}
+
+# install dnsmasq to forward resolution to consul dns
+install_dns_forwarder () {
+dnslist=$(seq 1 $1 | xargs -I{} -n1 echo "172.22.101.10{}" | (readarray -t ARRAY; IFS=' '; echo "${ARRAY[*]}"))
+sed -ie "s/^#DNS=$/DNS=${dnslist}/g"  /etc/systemd/resolved.conf
+systemctl restart systemd-resolved.service
+}
+
+# install dnsmasq to forward resolution to consul dns
+install_dnsmasq_server () {
+apt-get install -y dnsmasq
+seq 1 $1 | xargs -I{} -n1 echo "172.22.101.10{} k8s-server-api.service.dc1.consul" >/etc/dnsmasq.hosts
+cat <<EOF >/etc/dnsmasq.conf
+except-interface=lo
+no-resolv
+no-hosts
+log-queries
+addn-hosts=/etc/dnsmasq.hosts
+server=/^((?!k8s).)*consul$/127.0.0.1#8600
+server=10.0.2.3
+EOF
+
+systemctl enable dnsmasq
+systemctl restart dnsmasq
+
+systemctl restart systemd-resolved.service
+
 }
 
 # install helm 3
@@ -192,6 +200,72 @@ curl -LO "https://github.com/cilium/hubble/releases/download/$cilium_version/hub
 sha256sum --check hubble-linux-amd64.tar.gz.sha256sum
 tar zxf hubble-linux-amd64.tar.gz
 mv hubble /usr/local/bin
+}
+
+# install cilium on k8S cluster
+install_cilium_on_cluster () {
+    helm repo add cilium https://helm.cilium.io/
+    helm repo update
+
+cat <<EOF >/tmp/bgp-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bgp-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    peers:
+      - peer-address:  172.22.101.2
+        peer-asn: 65002
+        my-asn: 65006
+    address-pools:
+      - name: default
+        protocol: bgp
+        addresses:
+          - 10.10.10.1-10.10.10.254
+EOF
+
+    kubectl apply -f /tmp/bgp-config.yaml
+
+    #SEED=$(head -c16 /dev/urandom | base64 -w0)
+    #--set maglev.hashSeed=$SEED 
+
+    helm install cilium cilium/cilium --version $cilium_version \
+                                      --namespace kube-system \
+				      --set nodeinit.enabled=true \
+				      --set hostServices.enabled=false \
+				      --set externalIPs.enabled=true \
+				      --set nodePort.enabled=true \
+				      --set hostPort.enabled=true \
+				      --set bgp.enabled=true \
+				      --set bgp.announce.loadbalancerIP=true \
+				      --set bpf.masquerade=true \
+				      --set image.pullPolicy=IfNotPresent \
+				      --set ipam.mode=kubernetes \
+				      --set kubeProxyReplacement=strict \
+				      --set tunnel=disabled \
+				      --set autoDirectNodeRoutes=true \
+				      --set devices=enp0s8 \
+				      --set nativeRoutingCIDR="10.10.0.0/16" \
+				      --set maglev.tableSize=65521 \
+				      --set loadBalancer.algorithm=maglev \
+				      --set loadBalancer.mode=dsr \
+				      --set hubble.listenAddress=":4244" \
+				      --set hubble.relay.enabled=true \
+				      --set hubble.ui.enabled=true \
+				      --set hubble.enabled=true \
+				      --set hubble.metrics.enabled="{dns,drop,tcp,flow,port-distribution,icmp,http}" \
+				      --set prometheus.enabled=true \
+				      --set operator.prometheus.enabled=true \
+				      --set k8sServiceHost=$(cat /vagrant/.kubeapiserver| awk -F':' '{print $1}') \
+				      --set k8sServicePort=$(cat /vagrant/.kubeapiserver| awk -F':' '{print $2}')
+
+
+  # config grafana+prometheus
+  kubectl apply -f https://raw.githubusercontent.com/cilium/cilium/v1.8/examples/kubernetes/addons/prometheus/monitoring-example.yaml
+  #kubectl -n cilium-monitoring port-forward service/grafana --address 0.0.0.0 --address :: 3000:3000
+  #kubectl -n cilium-monitoring port-forward service/prometheus --address 0.0.0.0 --address :: 9090:9090
 }
 
 # install kubeadm, kubectl et kubelet
@@ -266,6 +340,8 @@ consul reload
 	       --certificate-key $CERT_KEY \
 	       --upload-certs
 
+  # configure metric server
+  curl -s -L https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.5.0/components.yaml  | awk '{print}/kubelet-preferred-address/{print "        - --kubelet-insecure-tls"}' | kubectl apply -f -
 
   # share token and ca hash with other node
   kubeadm token list -o json | jq -r 'select(.description |test("kubeadm init")) | .token' >/vagrant/.token
@@ -345,53 +421,5 @@ consul reload
   kubectl taint nodes --all node-role.kubernetes.io/master-
 }
 
-install_cilium_on_cluster () {
-    helm repo add cilium https://helm.cilium.io/
-    helm repo update
-
-cat <<EOF >/tmp/bgp-config.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: bgp-config
-  namespace: kube-system
-data:
-  config.yaml: |
-    peers:
-      - peer-address:  172.22.101.2
-        peer-asn: 65002
-        my-asn: 65006
-    address-pools:
-      - name: default
-        protocol: bgp
-        addresses:
-          - 10.10.10.1-10.10.10.254
-EOF
-
-    kubectl apply -f /tmp/bgp-config.yaml
-    helm install cilium cilium/cilium --version $cilium_version \
-                                      --namespace kube-system \
-				      --set nodeinit.enabled=true \
-				      --set hostServices.enabled=false \
-				      --set externalIPs.enabled=true \
-				      --set nodePort.enabled=true \
-				      --set hostPort.enabled=true \
-				      --set bgp.enabled=true \
-				      --set bgp.announce.loadbalancerIP=true \
-				      --set bpf.masquerade=true \
-				      --set image.pullPolicy=IfNotPresent \
-				      --set ipam.mode=kubernetes \
-				      --set kubeProxyReplacement=strict \
-				      --set tunnel=disabled \
-				      --set autoDirectNodeRoutes=true \
-				      --set devices=enp0s8 \
-				      --set nativeRoutingCIDR="10.10.0.0/16" \
-				      --set loadBalancer.algorithm=maglev \
-				      --set loadBalancer.mode=dsr \
-				      --set loadBalancer.acceleration=disabled  \
-				      --set hubble.listenAddress=":4244" \
-				      --set hubble.relay.enabled=true \
-				      --set hubble.ui.enabled=true \
-				      --set k8sServiceHost=$(cat /vagrant/.kubeapiserver| awk -F':' '{print $1}') \
-				      --set k8sServicePort=$(cat /vagrant/.kubeapiserver| awk -F':' '{print $2}')
+install_metric_server () {
 }
