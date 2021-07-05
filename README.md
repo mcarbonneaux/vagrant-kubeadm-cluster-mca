@@ -38,7 +38,12 @@ kubectl are already configured and you are sudoed to root.
 # kubectl get node
 ```
 
-# to create simple web pod (nginx) with loadbalancer dsr
+# Test plateform schema
+
+![image](schema.png)
+
+
+# To create simple web pod (nginx) with loadbalancer dsr
 
 the k8s cluster are already configured to support loadbalancer type.
 
@@ -46,7 +51,7 @@ you need juste to create pod with loadbalancer type.
 
 - https://docs.cilium.io/en/v1.10/gettingstarted/bgp/#create-loadbalancer-and-backend-pods
 
-
+Excute this command on any k8s cluster nodes (worker or controle plane)
 ```
 # kubectl create configmap nginx-default --from-file=/vagrant/test/nginx/default.conf
 # kubectl create configmap nginx-index --from-file=/vagrant/test/nginx/index.html
@@ -62,7 +67,7 @@ test-lb      LoadBalancer   10.11.180.200   10.10.10.1    80:31490/TCP   46m
 
 you can seen your lb as external ip : 10.10.10.1
 
-# to test the loadbalancer dsr throug the bgp router
+# To test the loadbalancer dsr throug the bgp router
 
 ```
 # vagrant ssh user
@@ -96,4 +101,16 @@ on linux root shell :
 ```
 # route add -net 10.10.10.0/24 gw 172.22.100.2
 ```
+
+# To connect on different vm with ssh
+
+search in vagrant log line like :
+```
+Forwarding ports...                      
+22 (guest) => 2200 (host) (adapter 1)    
+```
+
+for exemple for this vm you can access to the vm using `localhost` and port `2200`.
+
+the user are `vagrant` and the password `vagrant`.
 
