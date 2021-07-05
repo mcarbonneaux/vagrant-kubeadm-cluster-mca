@@ -1,0 +1,21 @@
+# kubectl exec -it alpine1 -- bash
+# apk update
+# apk install bind-tools
+# 
+# kubectl exec  alpine1 -- dig -t SRV _http._tcp.headless-service.default.svc.cluster.local
+apiVersion: v1
+kind: Pod
+metadata:
+  name: alpine1
+  namespace: default
+spec:
+  containers:
+  - image: alpine:3.14
+    command:
+      - sleep
+      - "86400"
+    imagePullPolicy: IfNotPresent
+    name: alpine
+  dnsPolicy: ClusterFirstWithHostNet
+  hostNetwork: true
+  restartPolicy: Always

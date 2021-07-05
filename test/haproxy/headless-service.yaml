@@ -1,0 +1,76 @@
+#
+# dns specification for dns discovery
+# https://github.com/kubernetes/dns/blob/master/docs/specification.md#232---srv-records
+#
+# dnspolicy :
+# https://kubernetes.io/fr/docs/concepts/services-networking/dns-pod-service/#politique-dns-du-pod
+#
+# the kubernetes dns ip is generaly the .10 of the service-cluster-ip-range of the cluster
+# you can see it on kubelet arguments.
+# depend on the dnspolicy the /etc/resolv.conf are configured to it.
+#
+# on this cluster are 10.11.0.10
+#
+# haproxy example with dns discovery
+# https://www.securityandit.com/network/haproxy-for-service-discovery-in-kubernetes/
+#
+# the discovery name are in form : _<protocolname>._<protocol>.<servicename>.<namespace>.svc.cluster.local
+# on this test the headless service dns name is : _http._tcp.headless-service.default.svc.cluster.local
+#
+# dig -t SRV _http._tcp.headless-service.default.svc.cluster.local
+#
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: headless-service
+  labels:
+     app: headless-service
+spec:
+ clusterIP: None
+ ports:  
+  - port:  80
+    protocol: TCP
+    name: http
+ selector:
+   app: nginx-headless
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-headless
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-headless
+  template:
+    metadata:
+      labels:
+        app: nginx-headless
+    spec:
+      containers:
+      - name: web
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: nginx-default-vol
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+        - name: nginx-index-vol
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+      volumes:
+        - name: nginx-default-vol
+          configMap:
+            name: nginx-default 
+        - name: nginx-index-vol
+          configMap:
+            name: nginx-index
+
