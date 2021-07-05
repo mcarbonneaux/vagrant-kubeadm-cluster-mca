@@ -28,6 +28,10 @@ ip addr add 172.22.100.55/24 dev enp0s8 || true
 exit 0
 SCRIPT
 
+$enablesshdfromhost = <<-SCRIPT
+  sed -ie "s/^PasswordAuthentication.*$/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+  systemctl restart sshd
+SCRIPT
 
 Vagrant.configure("2") do |config|
   config.vm.box = IMAGE 
@@ -44,6 +48,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 1
       v.memory = 512
     end
+    v.vm.provision "Enable SSH from Host", type: "shell", run: "always", inline: $enablesshdfromhost   
     v.vm.provision "Enable forwarding and configure router", type: "shell", path: "scripts/configure-vagrant-router.sh"
   end
 
@@ -57,6 +62,7 @@ Vagrant.configure("2") do |config|
       v.memory = 512
     end
     v.vm.provision "add virtual ip", type: "shell", run: "always", inline: $addvirtualiptouser  
+    v.vm.provision "Enable SSH from Host", type: "shell", run: "always", inline: $enablesshdfromhost   
     v.vm.provision "Bring up demo client IPs", type: "shell", path: "scripts/configure-vagrant-user.sh"
   end
 

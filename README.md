@@ -114,3 +114,4 @@ for exemple for this vm you can access to the vm using `localhost` and port `220
 
 the user are `vagrant` and the password `vagrant`.
 
+for router and user vm they are directly accesible from host by her ip, and you can connect to it directly on port 22 from host.
