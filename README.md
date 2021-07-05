@@ -9,6 +9,7 @@ Is to test k8s in Multi-tier load-balancing configuration.
 - L4 LoadBlancer DSR with Cilium and ebpf (stateless)
 - L7 LoadBlancer in pod (haproxy/envoy or nginx...) (StateFull)
 
+Idea based on article of vincent bernat : 
 https://vincent.bernat.ch/en/blog/2018-multi-tier-loadbalancer
 
 # Prerequirist
