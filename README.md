@@ -1,5 +1,8 @@
-# vagrant-kubeadm-cilium-ha
-Vagrant file to build kubernetes cluster high availibility + cilium + bgp 
+# Build Multi-tier load-balancing with Kubernetes cluster with Cillium cluster 
+
+
+This project are build around Vagrant file to build kubernetes cluster with kubeadm in high availibility, 
+with cilium configured overlay using BGP ECMP and LoadBalancer DSR (Direct Server Return) features.
 
 Is to test k8s in Multi-tier load-balancing configuration.
 - BGP ECMP with cilium/metallb (stateless)
