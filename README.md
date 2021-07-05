@@ -65,7 +65,7 @@ kubernetes   ClusterIP      10.11.0.1       <none>        443/TCP        53m
 test-lb      LoadBalancer   10.11.180.200   10.10.10.1    80:31490/TCP   46m
 ```
 
-You can seen your lb as `EXTERNAL-IP` : 10.10.10.1
+You can seen your service as `LoadBalancer` with an `EXTERNAL-IP` as `10.10.10.1`.
 
 The base principe is to use `LoadBalancer` type service:
 https://kubernetes.io/fr/docs/concepts/services-networking/service/#publishing-services-service-types
