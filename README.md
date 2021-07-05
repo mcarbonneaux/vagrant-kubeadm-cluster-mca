@@ -1,11 +1,15 @@
-# vagrant-kubeadm-cilium-ha
-Vagrant file to build kubernetes cluster high availibility + cilium + bgp 
+# Build Multi-tier load-balancing with Kubernetes cluster with Cillium cluster 
+
+
+This project are build around Vagrant file to build kubernetes cluster with kubeadm in high availibility, 
+with cilium configured overlay using BGP ECMP and LoadBalancer DSR (Direct Server Return) features.
 
 Is to test k8s in Multi-tier load-balancing configuration.
 - BGP ECMP with cilium/metallb (stateless)
 - L4 LoadBlancer DSR with Cilium and ebpf (stateless)
 - L7 LoadBlancer in pod (haproxy/envoy or nginx...) (StateFull)
 
+Idea based on article of vincent bernat : 
 https://vincent.bernat.ch/en/blog/2018-multi-tier-loadbalancer
 
 # Prerequirist
@@ -45,17 +49,17 @@ kubectl are already configured and you are sudoed to root.
 
 # To create simple web pod (nginx) with loadbalancer dsr
 
-the k8s cluster are already configured to support loadbalancer type.
+The k8s cluster are already configured to support loadbalancer type.
 
-you need juste to create pod with loadbalancer type.
+You need juste to create pod with loadbalancer type.
 
 - https://docs.cilium.io/en/v1.10/gettingstarted/bgp/#create-loadbalancer-and-backend-pods
 
-Excute this command on any k8s cluster nodes (worker or controle plane)
+Execute this command on any k8s cluster nodes (worker or controle plane)
 ```
-# kubectl create configmap nginx-default --from-file=/vagrant/test/nginx/default.conf
-# kubectl create configmap nginx-index --from-file=/vagrant/test/nginx/index.html
-# kubectl apply -f /vagrant/test/nginx/testlb.yaml
+kubectl create configmap nginx-default --from-file=/vagrant/test/nginx/default.conf
+kubectl create configmap nginx-index --from-file=/vagrant/test/nginx/index.html
+kubectl apply -f /vagrant/test/nginx/testlb.yaml
 ```
 
 ```
@@ -65,7 +69,25 @@ kubernetes   ClusterIP      10.11.0.1       <none>        443/TCP        53m
 test-lb      LoadBalancer   10.11.180.200   10.10.10.1    80:31490/TCP   46m
 ```
 
-you can seen your lb as external ip : 10.10.10.1
+You can seen your service as `LoadBalancer` with an `EXTERNAL-IP` as `10.10.10.1`.
+
+The base principe is to use `LoadBalancer` type service:
+https://kubernetes.io/fr/docs/concepts/services-networking/service/#publishing-services-service-types
+
+The kubeproxy cilium replacement support `ClusterIp` and `NodePort`, but also `LoadBalancer`.
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-lb-service
+spec:
+  type: LoadBalancer
+  ports:
+    ... your service definition ...
+  selector:
+    ... your service selector....
+```
 
 # To test the loadbalancer dsr throug the bgp router
 
