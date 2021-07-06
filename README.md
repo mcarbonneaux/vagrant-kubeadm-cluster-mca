@@ -49,9 +49,9 @@ kubectl are already configured and you are sudoed to root.
 
 # To create simple web pod (nginx) with loadbalancer dsr
 
-The k8s cluster are already configured to support loadbalancer type.
+The k8s cluster are already configured to support `LoadBalancer` type.
 
-You need juste to create pod with loadbalancer type.
+You need juste to create pod with `LoadBalancer` type.
 
 - https://docs.cilium.io/en/v1.10/gettingstarted/bgp/#create-loadbalancer-and-backend-pods
 
