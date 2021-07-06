@@ -5,8 +5,8 @@ This project are build around Vagrant file to build kubernetes cluster with kube
 with cilium configured overlay using BGP ECMP and LoadBalancer DSR (Direct Server Return) features.
 
 Is to test k8s in Multi-tier load-balancing configuration.
-- BGP ECMP with cilium/metallb (stateless)
-- L4 LoadBlancer DSR with Cilium and ebpf (stateless)
+- BGP ECMP with cilium/metallb (Stateless)
+- L4 LoadBlancer DSR with Cilium and ebpf (Stateless)
 - L7 LoadBlancer in pod (haproxy/envoy or nginx...) (StateFull)
 
 Idea based on article of vincent bernat : 
