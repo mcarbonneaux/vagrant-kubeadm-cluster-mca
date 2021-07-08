@@ -71,8 +71,12 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 }
 EOF
 
+mkdir -f /etc/containerd
+containerd config default | awk '!/SystemdCgroup/{print}/containerd.runtimes.runc.options/{print "            SystemdCgroup = true"}' >/etc/containerd/config.toml
+
 systemctl enable docker
 systemctl daemon-reload
+systemctl restart containerd
 systemctl restart docker
 }
 
@@ -335,6 +339,7 @@ consul reload
 	       --control-plane-endpoint k8s-server-api.service.dc1.consul:8443 \
 	       --pod-network-cidr="10.10.0.0/16" \
 	       --service-cidr="10.11.0.0/16" \
+	       --cri-socket /run/containerd/containerd.sock \
 	       --kubernetes-version=$k8s_version \
                --skip-phases=addon/kube-proxy \
 	       --certificate-key $CERT_KEY \

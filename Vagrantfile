@@ -15,7 +15,8 @@ K8S_NODE_IPS = "172.22.101."
 K8S_VERSION = "1.20.8"
 
 $change_default_route = <<-SCRIPT
-route add -net 172.22.100.0/24 gw 172.22.101.2
+route add -net 172.22.100.0/24 gw 172.22.101.2 || true
+exit 0
 SCRIPT
 
 $addvirtualiptouser = <<-SCRIPT
@@ -33,10 +34,17 @@ $enablesshdfromhost = <<-SCRIPT
   systemctl restart sshd
 SCRIPT
 
+$removek8snode = <<-SCRIPT
+  kubectl cordon $HOSTNAME
+  kubectl drain $HOSTNAME
+  kubectl delete node $HOSTNAME
+SCRIPT
+
 Vagrant.configure("2") do |config|
   config.vm.box = IMAGE 
   config.ssh.forward_agent = false
-  config.vm.boot_timeout = 600
+  config.vm.boot_timeout = 800
+  config.vm.synced_folder ".", "/vagrant", type: "virtualbox", automount: true
 
   config.vm.define "router" do |v|
     v.vm.network :private_network, ip: USER_IPS+"2", nic_type: NETWORK_TYPE
@@ -72,7 +80,7 @@ Vagrant.configure("2") do |config|
       server.vm.hostname = "server-#{i}"
       server.vm.network  :private_network, ip: K8S_SERVER_IPS+"#{i+100}", virtualbox__intnet: "dc_network", nic_type: NETWORK_TYPE
       server.vm.provider :virtualbox do |v|
-	v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+	v.customize ["modifyvm", :id, "--natdnshostresolver1", "on" ]
 	v.linked_clone = true 
 	v.cpus = 2
 	v.memory = K8S_SERVER_MEMORY
