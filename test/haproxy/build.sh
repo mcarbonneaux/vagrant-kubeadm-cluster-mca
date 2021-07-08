@@ -11,8 +11,8 @@ if [ -f "$1" ]; then
 fi
 }
 
-deploy_configmap_fromfile nginx-default ./nginx/default.conf
-deploy_configmap_fromfile nginx-index ./nginx/index.html
+deploy_configmap_fromfile nginx-headless-default ./nginx/default.conf
+deploy_configmap_fromfile nginx-headless-index ./nginx/index.html
 deploy_yaml yaml/headless-service.yaml
 
 deploy_configmap_fromfile haproxy-config ./haproxy/haproxy.cfg

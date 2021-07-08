@@ -50,10 +50,6 @@ spec:
           subPath: spoe-modsecurity.conf
         ports:
         - containerPort: 80
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
       volumes:
         - name: haproxy-config-vol
           configMap:

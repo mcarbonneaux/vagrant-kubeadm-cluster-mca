@@ -54,10 +54,10 @@ spec:
         image: nginx
         imagePullPolicy: IfNotPresent
         volumeMounts:
-        - name: nginx-default-vol
+        - name: nginx-headless-default-vol
           mountPath: /etc/nginx/conf.d/default.conf
           subPath: default.conf
-        - name: nginx-index-vol
+        - name: nginx-headless-index-vol
           mountPath: /usr/share/nginx/html/index.html
           subPath: index.html
         ports:
@@ -67,10 +67,10 @@ spec:
             path: /
             port: 80
       volumes:
-        - name: nginx-default-vol
+        - name: nginx-headless-default-vol
           configMap:
-            name: nginx-default 
-        - name: nginx-index-vol
+            name: nginx-headless-default 
+        - name: nginx-headless-index-vol
           configMap:
-            name: nginx-index
+            name: nginx-headless-index
 
