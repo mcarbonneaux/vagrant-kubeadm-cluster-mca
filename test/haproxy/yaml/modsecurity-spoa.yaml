@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: modsecurity-service
+spec:
+ clusterIP: None
+ ports:  
+  - port: 12345
+    protocol: TCP
+    name: spoa
+ selector:
+   app: modsecurity-spoa
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modsecurity-spoa-deployment
+  labels:
+    app: modsecurity-spoa
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: modsecurity-spoa
+  template:
+    metadata:
+      labels:
+        app: modsecurity-spoa
+    spec:
+      containers:
+      - name: modsecurity-spoa
+        image: quay.io/jcmoraisjr/modsecurity-spoa
+        args: 
+        - -n
+        - "1"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 12345
+          name: spop
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 12345
