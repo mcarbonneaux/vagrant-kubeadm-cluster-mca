@@ -1,9 +1,10 @@
 MASTER_COUNT = 3
 NODE_COUNT = 3
-IMAGE = "ubuntu/hirsute64"
+#IMAGE = "ubuntu/hirsute64"
+IMAGE = "generic/ubuntu2104"
 NETWORK_TYPE = "82545EM"
 #NETWORK_TYPE = "virtio"
-CILIUM_VERSION = "1.10.1"
+CILIUM_VERSION = "1.10.3"
 CILIUM_PASSWORD = "admin"
 USER_IPS = "172.22.100."
 K8S_SERVER_IPS = "172.22.101."
@@ -40,6 +41,53 @@ $removek8snode = <<-SCRIPT
   kubectl delete node $HOSTNAME
 SCRIPT
 
+$remountshare = <<-SCRIPT
+if  !  type  VBoxControl  > /dev/null;  then
+  echo  'VirtualBox Guest Additions NOT found'  > /dev/stderr
+  exit 1
+fi
+
+MY_UID="$(id -u)"
+MY_GID="$(id -g)"
+
+( set -x;  sudo  VBoxControl  sharedfolder  list; )  |  \
+grep      '^ *[0-9][0-9]* *- *'                      |  \
+sed  -e 's/^ *[0-9][0-9]* *- *//'                    |  \
+while  read  SHARED_FOLDER
+do
+  MOUNT_POINT="/$SHARED_FOLDER"
+  if  [ -d "$MOUNT_POINT" ];  then
+    MOUNTED="$(mount  |  grep  "$MOUNT_POINT")"
+    if  [ "$MOUNTED" ];  then
+      echo  "Already mounted :  $MOUNTED"
+    else
+      (
+        set -x
+        sudo  mount  -t vboxsf  -o "nosuid,uid=$MY_UID,gid=$MY_GID"  "$SHARED_FOLDER"  "$MOUNT_POINT"
+      )
+    fi
+  fi
+done
+SCRIPT
+
+$routeaddwin = <<-SCRIPT
+
+ if ((Get-Host).Version.Major -lt 7) {
+   if ( (Get-Command pwsh | measure).count -eq 0) {
+     echo "you must install power shell 7 before use this script!"
+     exit -1;
+   }
+   $pwshpath=(Get-Command pwsh).Source
+   Start-Process -Wait -NoNewWindow -FilePath $pwshpath -ArgumentList  ( '-File', 'routeadd.ps1' )
+ }
+
+
+SCRIPT
+
+$routeaddunix = <<-SCRIPT
+  route add -net 10.10.10.0/24 gw 172.22.100.2
+SCRIPT
+
 Vagrant.configure("2") do |config|
   config.vm.box = IMAGE 
   config.ssh.forward_agent = false
@@ -50,17 +98,30 @@ Vagrant.configure("2") do |config|
     v.vm.network :private_network, ip: USER_IPS+"2", nic_type: NETWORK_TYPE
     v.vm.network :private_network, ip: K8S_SERVER_IPS+"2", virtualbox__intnet: "dc_network", :mac=> "001122334455", nic_type: NETWORK_TYPE
     v.vm.hostname = "router"
+    v.vbguest.installer_options = { allow_kernel_upgrade: true }
     v.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       v.linked_clone = true 
       v.cpus = 1
       v.memory = 512
     end
+
+    v.trigger.after :up do |trigger|      
+          trigger.info = "add 10.10.10.0/24 route..."      
+	  if Vagrant::Util::Platform.windows? then
+            trigger.run = {inline: $routeaddwin}    
+	  else
+            trigger.run = {inline: $routeaddunix}    
+	  end
+    end
+
+    #v.vm.provision "Force Remount Share", type: "shell", run: "always", inline: $remountshare   
     v.vm.provision "Enable SSH from Host", type: "shell", run: "always", inline: $enablesshdfromhost   
     v.vm.provision "Enable forwarding and configure router", type: "shell", path: "scripts/configure-vagrant-router.sh"
   end
 
   config.vm.define "user" do |v|
+    v.vbguest.installer_options = { allow_kernel_upgrade: true }
     v.vm.network :private_network, ip: USER_IPS+"3", nic_type: NETWORK_TYPE
     v.vm.hostname = "user"
     v.vm.provider :virtualbox do |v|
@@ -76,6 +137,7 @@ Vagrant.configure("2") do |config|
 
   (1..MASTER_COUNT).each do |i|
     config.vm.define "server-#{i}" do |server|
+      server.vbguest.installer_options = { allow_kernel_upgrade: true }
       server.vm.box = IMAGE
       server.vm.hostname = "server-#{i}"
       server.vm.network  :private_network, ip: K8S_SERVER_IPS+"#{i+100}", virtualbox__intnet: "dc_network", nic_type: NETWORK_TYPE
@@ -95,12 +157,14 @@ Vagrant.configure("2") do |config|
       server.vm.provision "file", source: "./.ssh/id_rsa.pub", destination: "/tmp/id_rsa.pub"
       server.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
       server.vm.provision "Force default route to the bgp router", type: "shell", run: "always", inline: $change_default_route 
+      #server.vm.provision "Force Remount Share", type: "shell", run: "always", inline: $remountshare   
       server.vm.provision "shell", path: "scripts/configure_k8s_server-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT]
     end
   end
 
   (1..NODE_COUNT).each do |i|
     config.vm.define "node-#{i}" do |kubenodes|
+      kubenodes.vbguest.installer_options = { allow_kernel_upgrade: true }
       kubenodes.vm.box = IMAGE
       kubenodes.vm.hostname = "node-#{i}"
       kubenodes.vm.network  :private_network, ip: K8S_NODE_IPS + "#{i+110}", virtualbox__intnet: "dc_network", nic_type: NETWORK_TYPE

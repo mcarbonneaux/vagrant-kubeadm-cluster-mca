@@ -71,7 +71,7 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 }
 EOF
 
-mkdir -f /etc/containerd
+mkdir -p /etc/containerd
 containerd config default | awk '!/SystemdCgroup/{print}/containerd.runtimes.runc.options/{print "            SystemdCgroup = true"}' >/etc/containerd/config.toml
 
 systemctl enable docker
@@ -125,7 +125,8 @@ systemctl restart haproxy
 # install dnsmasq to forward resolution to consul dns
 install_dns_forwarder () {
 dnslist=$(seq 1 $1 | xargs -I{} -n1 echo "172.22.101.10{}" | (readarray -t ARRAY; IFS=' '; echo "${ARRAY[*]}"))
-sed -ie "s/^#DNS=$/DNS=${dnslist}/g"  /etc/systemd/resolved.conf
+sed -ie "s/^[[:blank:]#]*DNS=.*$/DNS=${2}/g"  /etc/systemd/resolved.conf
+sed -ie "s/^[[:blank:]#]*DNSSEC=.*$/DNSSEC=no/g"  /etc/systemd/resolved.conf
 systemctl restart systemd-resolved.service
 }
 
@@ -140,7 +141,7 @@ no-hosts
 log-queries
 addn-hosts=/etc/dnsmasq.hosts
 server=/^((?!k8s).)*consul$/127.0.0.1#8600
-server=10.0.2.3
+server=8.8.8.8
 EOF
 
 systemctl enable dnsmasq
@@ -427,4 +428,5 @@ consul reload
 }
 
 install_metric_server () {
+  echo "no configuration needed for metric server\n"
 }
