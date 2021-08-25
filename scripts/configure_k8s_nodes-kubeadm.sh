@@ -19,6 +19,8 @@ admin_password=${1:-password}
 # curl -s https://packages.cloud.google.com/apt/dists/kubernetes-xenial/main/binary-amd64/Packages | grep Version | awk '{print $2}'
 k8s_version=${3:-1.20.8}
 cilium_version=${2:-v1.10.1}
+cilium_cli_version=${6:-v0.8.6}
+hubble_version=${7:-v0.8.1}
 server_number=$4
 server_max_number=$5
 apiserver_port=6443
@@ -48,7 +50,7 @@ install-docker-io  $cgroup_driver
 #install-docker-ce "5:19.03.15~3-0~ubuntu-focal" $cgroup_driver
 
 install_helm3
-install_cilium_cli $cilium_version
+install_cilium_cli $cilium_cli_version $hubble_version
 install_kubetool $k8s_version
 install_consul_agent $server_ip $server_max_number $server_number
 install_dns_forwarder $server_max_number

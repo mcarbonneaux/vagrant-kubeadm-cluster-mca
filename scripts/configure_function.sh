@@ -134,7 +134,9 @@ systemctl restart systemd-resolved.service
 install_dnsmasq_server () {
 apt-get install -y dnsmasq
 seq 1 $1 | xargs -I{} -n1 echo "172.22.101.10{} k8s-server-api.service.dc1.consul" >/etc/dnsmasq.hosts
+rm -f /etc/dnsmasq.d/*
 cat <<EOF >/etc/dnsmasq.conf
+bind-dynamic
 except-interface=lo
 no-resolv
 no-hosts
@@ -143,6 +145,7 @@ addn-hosts=/etc/dnsmasq.hosts
 server=/^((?!k8s).)*consul$/127.0.0.1#8600
 server=8.8.8.8
 EOF
+
 
 systemctl enable dnsmasq
 systemctl restart dnsmasq
@@ -196,15 +199,16 @@ EOF
 
 # install cilium cli
 install_cilium_cli () {
-curl -L --remote-name-all https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz{,.sha256sum}
-sha256sum --check cilium-linux-amd64.tar.gz.sha256sum
+	set -x
+curl -LO --remote-name-all https://github.com/cilium/cilium-cli/releases/download/$1/cilium-linux-amd64.tar.gz{,.sha256sum}
+sha256sum --check cilium-linux-amd64.tar.gz.sha256sum || exit -1
 tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin
-rm cilium-linux-amd64.tar.gz{,.sha256sum}
-curl -LO "https://github.com/cilium/hubble/releases/download/$cilium_version/hubble-linux-amd64.tar.gz"
-curl -LO "https://github.com/cilium/hubble/releases/download/$cilium_version/hubble-linux-amd64.tar.gz.sha256sum"
-sha256sum --check hubble-linux-amd64.tar.gz.sha256sum
+rm -f cilium-linux-amd64.tar.gz{,.sha256sum}
+curl -LO --remote-name-all https://github.com/cilium/hubble/releases/download/$2/hubble-linux-amd64.tar.gz{,.sha256sum}
+sha256sum --check hubble-linux-amd64.tar.gz.sha256sum || exit -1
 tar zxf hubble-linux-amd64.tar.gz
-mv hubble /usr/local/bin
+mv -f hubble /usr/local/bin
+set +x
 }
 
 # install cilium on k8S cluster

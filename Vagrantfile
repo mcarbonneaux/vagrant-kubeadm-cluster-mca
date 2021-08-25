@@ -1,10 +1,17 @@
+# to test bgp with cilium
+# https://docs.cilium.io/en/v1.10/gettingstarted/bgp/#bgp
+# https://metallb.universe.tf/
+# https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/example-config.yaml
+
 MASTER_COUNT = 3
-NODE_COUNT = 3
+NODE_COUNT = 0 # change this value to add k8s node
 #IMAGE = "ubuntu/hirsute64"
 IMAGE = "generic/ubuntu2104"
 NETWORK_TYPE = "82545EM"
 #NETWORK_TYPE = "virtio"
 CILIUM_VERSION = "1.10.3"
+CILIUM_CLI_VERSION = "v0.8.6"
+HUBBLE_VERSION = "v0.8.1"
 CILIUM_PASSWORD = "admin"
 USER_IPS = "172.22.100."
 K8S_SERVER_IPS = "172.22.101."
@@ -88,11 +95,25 @@ $routeaddunix = <<-SCRIPT
   route add -net 10.10.10.0/24 gw 172.22.100.2
 SCRIPT
 
+$generatesshkey = <<-SCRIPT
+  if (-Not (Test-Path .ssh/id_rsa -PathType leaf))
+  {
+    mkdir -p .ssh
+    ssh-keygen -f .ssh/id_rsa -N '""'
+  }
+SCRIPT
+
 Vagrant.configure("2") do |config|
   config.vm.box = IMAGE 
   config.ssh.forward_agent = false
   config.vm.boot_timeout = 800
   config.vm.synced_folder ".", "/vagrant", type: "virtualbox", automount: true
+  config.trigger.before :up do |trigger|      
+	  if Vagrant::Util::Platform.windows? then
+	    trigger.info = "generate ssh key..."      
+	    trigger.run = {inline: $generatesshkey}    
+	  end
+  end
 
   config.vm.define "router" do |v|
     v.vm.network :private_network, ip: USER_IPS+"2", nic_type: NETWORK_TYPE
@@ -158,7 +179,8 @@ Vagrant.configure("2") do |config|
       server.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
       server.vm.provision "Force default route to the bgp router", type: "shell", run: "always", inline: $change_default_route 
       #server.vm.provision "Force Remount Share", type: "shell", run: "always", inline: $remountshare   
-      server.vm.provision "shell", path: "scripts/configure_k8s_server-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT]
+      server.vm.provision "shell", path: "scripts/configure_k8s_server-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT, CILIUM_CLI_VERSION, HUBBLE_VERSION ]
+
     end
   end
 
@@ -171,7 +193,7 @@ Vagrant.configure("2") do |config|
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa.pub", destination: "/tmp/id_rsa.pub"
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
       kubenodes.vm.provision "Force default route to the bgp router", type: "shell", run: "always", inline: $change_default_route 
-      kubenodes.vm.provision "shell", path: "scripts/configure_k8s_nodes-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT]
+      kubenodes.vm.provision "shell", path: "scripts/configure_k8s_nodes-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT, CILIUM_CLI_VERSION, HUBBLE_VERSION ]
       kubenodes.vm.provider "virtualbox" do |v|
         v.linked_clone = true
         v.memory = K8S_NODE_MEMORY
@@ -179,10 +201,5 @@ Vagrant.configure("2") do |config|
     end
   end
 
-
-# to test bgp with cilium
-# https://docs.cilium.io/en/v1.10/gettingstarted/bgp/#bgp
-# https://metallb.universe.tf/
-# https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/example-config.yaml
 
 end
