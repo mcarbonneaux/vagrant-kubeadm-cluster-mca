@@ -1,3 +1,7 @@
+# add virtualbox share folder mount at reboot in crontab (without that when reboot the sharefolder are not mounted)
+vboxautomountatreboot () {
+ echo "@reboot root command /usr/bin/mount /vagrant" >/etc/cron.d/vboxremount
+}
 # configure sshd to enable to log on port forwarded port (see in vagrant log) with user/pass
 # all vagrant box had :
 # - user: vagrant 
@@ -24,6 +28,7 @@ update-alternatives --set ebtables /usr/sbin/ebtables-legacy
 disable_swap () {
 swapon -s
 swapoff -a
+sed -ie "s|\(.*swap.*\)|#\1|g"  /etc/fstab
 }
 
 # check ebpf mount needed by cilium
@@ -72,12 +77,15 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 EOF
 
 mkdir -p /etc/containerd
-containerd config default | awk '!/SystemdCgroup/{print}/containerd.runtimes.runc.options/{print "            SystemdCgroup = true"}' >/etc/containerd/config.toml
+containerd config default | awk '!/SystemdCgroup/{print}
+                                 /containerd.runtimes.runc.options/{print "            SystemdCgroup = true"}' >/etc/containerd/config.toml
 
 systemctl enable docker
 systemctl daemon-reload
 systemctl restart containerd
 systemctl restart docker
+
+docker info | grep Cgroup
 }
 
 # install docker-ce from docker

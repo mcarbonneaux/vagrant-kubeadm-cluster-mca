@@ -33,6 +33,7 @@ export DEBIAN_FRONTEND=noninteractive
 # change server ip in host
 sed -ie  "s#127.0.2.1[[:blank:]]*"$HOSTNAME"[[:blank:]]"$HOSTNAME"#"$server_ip" "$HOSTNAME"#g"  /etc/hosts
 
+vboxautomountatreboot
 configure_firewall
 disable_swap
 install_kernel_module

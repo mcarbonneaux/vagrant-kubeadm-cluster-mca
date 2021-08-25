@@ -121,7 +121,8 @@ Vagrant.configure("2") do |config|
     v.vm.hostname = "router"
     v.vbguest.installer_options = { allow_kernel_upgrade: true }
     v.vm.provider :virtualbox do |v|
-      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on",
+                                    "--graphicscontroller", "vmsvga" ]
       v.linked_clone = true 
       v.cpus = 1
       v.memory = 512
@@ -146,7 +147,8 @@ Vagrant.configure("2") do |config|
     v.vm.network :private_network, ip: USER_IPS+"3", nic_type: NETWORK_TYPE
     v.vm.hostname = "user"
     v.vm.provider :virtualbox do |v|
-      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on",
+                                    "--graphicscontroller", "vmsvga" ]
       v.linked_clone = true 
       v.cpus = 1
       v.memory = 512
@@ -163,7 +165,8 @@ Vagrant.configure("2") do |config|
       server.vm.hostname = "server-#{i}"
       server.vm.network  :private_network, ip: K8S_SERVER_IPS+"#{i+100}", virtualbox__intnet: "dc_network", nic_type: NETWORK_TYPE
       server.vm.provider :virtualbox do |v|
-	v.customize ["modifyvm", :id, "--natdnshostresolver1", "on" ]
+	v.customize ["modifyvm", :id, "--natdnshostresolver1", "on",
+	                              "--graphicscontroller", "vmsvga" ]
 	v.linked_clone = true 
 	v.cpus = 2
 	v.memory = K8S_SERVER_MEMORY
@@ -195,6 +198,8 @@ Vagrant.configure("2") do |config|
       kubenodes.vm.provision "Force default route to the bgp router", type: "shell", run: "always", inline: $change_default_route 
       kubenodes.vm.provision "shell", path: "scripts/configure_k8s_nodes-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT, CILIUM_CLI_VERSION, HUBBLE_VERSION ]
       kubenodes.vm.provider "virtualbox" do |v|
+        v.customize ["modifyvm", :id, "--natdnshostresolver1", "on",
+                                      "--graphicscontroller", "vmsvga" ]
         v.linked_clone = true
         v.memory = K8S_NODE_MEMORY
       end
