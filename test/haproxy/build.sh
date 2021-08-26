@@ -14,11 +14,12 @@ fi
 deploy_configmap_fromfile nginx-headless-default ./nginx/default.conf
 deploy_configmap_fromfile nginx-headless-index ./nginx/index.html
 deploy_yaml yaml/headless-service.yaml
+deploy_yaml yaml/hackazon-service.yaml
 
 deploy_configmap_fromfile haproxy-config ./haproxy/haproxy.cfg
 deploy_configmap_fromfile haproxy-modsecurity ./haproxy/spoe-modsecurity.conf
-deploy_yaml yaml/testhaproxy.yaml
+deploy_yaml yaml/haproxy.yaml
 
-deploy_configmap_fromfile modsecurity-default ./modsecurity
+deploy_configmap_fromfile modsecurity-config ./modsecurity
 deploy_configmap_fromfile modsecurity-rules ./modsecurity/rules
 deploy_yaml yaml/modsecurity-spoa.yaml

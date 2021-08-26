@@ -1,0 +1,42 @@
+# documentation of hackazon
+# https://www.rapid7.com/globalassets/external/docs/download/AppSpider_Hackazon_User_Guide.pdf
+#
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: hackazon-service
+spec:
+ clusterIP: None
+ ports:
+  - port: 80
+    protocol: TCP
+    name: http
+ selector:
+   app: hackazon-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hackazon-service
+  labels:
+    app: hackazon-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hackazon-service
+  template:
+    metadata:
+      labels:
+        app: hackazon-service
+    spec:
+      containers:
+      - image: mutzel/all-in-one-hackazon:postinstall
+        name: hackazon
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80

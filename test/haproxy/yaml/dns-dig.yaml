@@ -1,6 +1,6 @@
-# kubectl exec -it alpine1 -- bash
+# kubectl exec -it alpine1 -- sh
 # apk update
-# apk install bind-tools
+# apk add bind-tools
 # 
 # kubectl exec  alpine1 -- dig -t SRV _http._tcp.headless-service.default.svc.cluster.local
 apiVersion: v1
