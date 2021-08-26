@@ -18,6 +18,7 @@ admin_password=${1:-password}
 # k8s version
 # curl -s https://packages.cloud.google.com/apt/dists/kubernetes-xenial/main/binary-amd64/Packages | grep Version | awk '{print $2}'
 k8s_version=${3:-1.20.8}
+crictl_version=${8:-v1.20.0}
 cilium_version=${2:-v1.10.1}
 cilium_cli_version=${6:-v0.8.6}
 hubble_version=${7:-v0.8.1}

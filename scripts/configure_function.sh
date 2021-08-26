@@ -288,12 +288,27 @@ EOF
 # install kubeadm, kubectl et kubelet
 install_kubetool () {
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+
 cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
 deb https://apt.kubernetes.io/ kubernetes-xenial main
 EOF
+
 apt-get update
 apt-get install -qy kubelet="$1-00" kubeadm="$1-00" kubectl="$1-00"
 apt-mark hold kubeadm kubelet kubectl
+
+cat <<EOF >/etc/crictl.containerd.yaml
+runtime-endpoint: unix:///var/run/containerd/containerd.sock
+image-endpoint: unix:///var/run/containerd/containerd.sock
+timeout: 10
+debug: false
+EOF
+
+curl  -LO --remote-name-all https://github.com/kubernetes-sigs/cri-tools/releases/download/$crictl_version/crictl-$crictl_version-linux-amd64.tar.gz
+[ -f crictl-$crictl_version-linux-amd64.tar.gz ] || exit -1
+tar xzvf crictl-$crictl_version-linux-amd64.tar.gz
+mv crictl /usr/bin/crictl
+
 }
 
 configure_kubeconfig () {
@@ -311,9 +326,11 @@ push_certificate () {
 }
 
 pull_certificate () {
+  set -x 
   mkdir -p /etc/kubernetes/pki/ectd
   cp -vrpf /vagrant/.pki/{apiserver,ca,sa,front-proxy-ca}.* /tmp
   cp -vrpf /vagrant/.pki/etcd/ca.* /etc/kubernetes/pki/etcd/
+  set +x
 }
 
 # create the kubernetes cluster
@@ -352,11 +369,11 @@ consul reload
 	       --control-plane-endpoint k8s-server-api.service.dc1.consul:8443 \
 	       --pod-network-cidr="10.10.0.0/16" \
 	       --service-cidr="10.11.0.0/16" \
-	       --cri-socket /run/containerd/containerd.sock \
 	       --kubernetes-version=$k8s_version \
                --skip-phases=addon/kube-proxy \
 	       --certificate-key $CERT_KEY \
 	       --upload-certs
+	       # --cri-socket unix:///run/containerd/containerd.sock 
 
   # configure metric server
   curl -s -L https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.5.0/components.yaml  | awk '{print}/kubelet-preferred-address/{print "        - --kubelet-insecure-tls"}' | kubectl apply -f -
@@ -425,11 +442,13 @@ consul reload
                --apiserver-bind-port=$apiserver_port \
 	       --certificate-key $(cat /vagrant/.certkey) \
 	       --control-plane
+	       # --cri-socket unix:///run/containerd/containerd.sock 
   else
   # join the cluster
   kubeadm join $(cat /vagrant/.kubeapiserver) \
                --token $(cat /vagrant/.token) \
 	       --discovery-token-ca-cert-hash sha256:$(cat /vagrant/.cahash) 
+	       # --cri-socket unix:///run/containerd/containerd.sock 
   fi
 
   # configure kubeconfig
