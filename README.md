@@ -108,7 +108,7 @@ you while seen the node name in response:
 nginx-69ddf6b8c9-6kjf9
 ```
 
-# to join 10.10.10.0/24 network from host
+# To join 10.10.10.0/24 network from host (normaly added automaticly)
 
 user network are host-only network and are joinable from host.
 
@@ -139,7 +139,9 @@ the user are `vagrant` and the password `vagrant`.
 for router and user vm they are directly accesible from host by her ip, and you can connect to it directly on port 22 from host.
 
 
-# test hackazone...
+# Test hackazone and spoe modsecurity...
 
-https://github.com/rapid7/hackazon
+- https://github.com/rapid7/hackazon
+- https://www.rapid7.com/globalassets/external/docs/download/AppSpider_Hackazon_User_Guide.pdf
+- https://github.com/jcmoraisjr/modsecurity-spoa
 
