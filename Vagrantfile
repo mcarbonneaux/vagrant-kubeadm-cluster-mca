@@ -11,6 +11,7 @@ NETWORK_TYPE = "82545EM"
 #NETWORK_TYPE = "virtio"
 CILIUM_VERSION = "1.10.3"
 CILIUM_CLI_VERSION = "v0.8.6"
+CRICTL_VERSION = "v1.20.0"
 HUBBLE_VERSION = "v0.8.1"
 CILIUM_PASSWORD = "admin"
 USER_IPS = "172.22.100."
@@ -115,6 +116,14 @@ Vagrant.configure("2") do |config|
 	  end
   end
 
+  config.vm.provider "virtualbox" do |v|
+    v.check_guest_additions = false
+  end
+
+  if Vagrant.has_plugin?("vagrant-vbguest")
+    config.vbguest.auto_update = false
+  end
+
   config.vm.define "router" do |v|
     v.vm.network :private_network, ip: USER_IPS+"2", nic_type: NETWORK_TYPE
     v.vm.network :private_network, ip: K8S_SERVER_IPS+"2", virtualbox__intnet: "dc_network", :mac=> "001122334455", nic_type: NETWORK_TYPE
@@ -182,7 +191,7 @@ Vagrant.configure("2") do |config|
       server.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
       server.vm.provision "Force default route to the bgp router", type: "shell", run: "always", inline: $change_default_route 
       #server.vm.provision "Force Remount Share", type: "shell", run: "always", inline: $remountshare   
-      server.vm.provision "shell", path: "scripts/configure_k8s_server-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT, CILIUM_CLI_VERSION, HUBBLE_VERSION ]
+      server.vm.provision "shell", path: "scripts/configure_k8s_server-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT, CILIUM_CLI_VERSION, HUBBLE_VERSION, CRICTL_VERSION ]
 
     end
   end
@@ -196,7 +205,7 @@ Vagrant.configure("2") do |config|
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa.pub", destination: "/tmp/id_rsa.pub"
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
       kubenodes.vm.provision "Force default route to the bgp router", type: "shell", run: "always", inline: $change_default_route 
-      kubenodes.vm.provision "shell", path: "scripts/configure_k8s_nodes-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT, CILIUM_CLI_VERSION, HUBBLE_VERSION ]
+      kubenodes.vm.provision "shell", path: "scripts/configure_k8s_nodes-kubeadm.sh", args: [CILIUM_PASSWORD, CILIUM_VERSION, K8S_VERSION, "#{i}", MASTER_COUNT, CILIUM_CLI_VERSION, HUBBLE_VERSION, CRICTL_VERSION  ]
       kubenodes.vm.provider "virtualbox" do |v|
         v.customize ["modifyvm", :id, "--natdnshostresolver1", "on",
                                       "--graphicscontroller", "vmsvga" ]
