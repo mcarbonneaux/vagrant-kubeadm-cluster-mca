@@ -14,7 +14,8 @@ fi
 deploy_configmap_fromfile nginx-headless-default ./nginx/default.conf
 deploy_configmap_fromfile nginx-headless-index ./nginx/index.html
 deploy_yaml yaml/headless-service.yaml
-deploy_yaml yaml/hackazon-service.yaml
+
+deploy_yaml yaml/hackazon.yaml
 
 deploy_configmap_fromfile haproxy-config ./haproxy/haproxy.cfg
 deploy_configmap_fromfile haproxy-modsecurity ./haproxy/spoe-modsecurity.conf

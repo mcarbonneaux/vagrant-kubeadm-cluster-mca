@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: modsecurity-service
+spec:
+ clusterIP: None
+ ports:  
+  - port: 12345
+    protocol: TCP
+    name: spoa
+ selector:
+   app: modsecurity-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: modsecurity-spoa-deployment
+  labels:
+    app: modsecurity-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: modsecurity-service
+  template:
+    metadata:
+      labels:
+        app: modsecurity-service
+    spec:
+      containers:
+      - name: modsecurity-spoa
+        image: quay.io/jcmoraisjr/modsecurity-spoa
+        args: 
+        - -n
+        - "1"
+        - "--"
+        - /etc/modsecurity/modsecurity.conf
+        - /etc/modsecurity/owasp-modsecurity-crs.conf
+        - /etc/modsecurity/excludeid.conf
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: modsecurity-config-vol
+          mountPath: /etc/modsecurity/modsecurity.conf
+          subPath: modsecurity-DetectionOnly.conf
+        - name: modsecurity-config-vol
+          mountPath: /etc/modsecurity/excludeid.conf
+          subPath: excludeid.conf
+        ports:
+        - containerPort: 12345
+          name: spop
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 12345
+      volumes:
+        - name: modsecurity-config-vol
+          configMap:
+            name: modsecurity-config 

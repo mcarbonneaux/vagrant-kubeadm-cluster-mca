@@ -22,7 +22,7 @@ metadata:
   labels:
     app: hackazon-service
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: hackazon-service
