@@ -124,7 +124,7 @@ on linux root shell :
 # route add -net 10.10.10.0/24 gw 172.22.100.2
 ```
 
-# To connect on different vm with ssh
+# To connect on different vm with ssh from host without vagrant (using putty or openssh)
 
 search in vagrant log line like :
 ```
