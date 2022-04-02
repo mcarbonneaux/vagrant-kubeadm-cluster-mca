@@ -1,6 +1,6 @@
 MASTER_COUNT = 3
-NODE_COUNT = 3
-IMAGE = "ubuntu/hirsute64"
+NODE_COUNT = 0
+IMAGE = "generic/ubuntu2104"
 NETWORK_TYPE = "82545EM"
 #NETWORK_TYPE = "virtio"
 CILIUM_VERSION = "1.10.1"
@@ -44,12 +44,22 @@ Vagrant.configure("2") do |config|
   config.vm.box = IMAGE 
   config.ssh.forward_agent = false
   config.vm.boot_timeout = 800
-  config.vm.synced_folder ".", "/vagrant", type: "virtualbox", automount: true
+  #config.vm.synced_folder ".", "/vagrant", type: "virtualbox", automount: true
+  config.vm.synced_folder ".", "/vagrant", type: 'rsync'
 
   config.vm.define "router" do |v|
-    v.vm.network :private_network, ip: USER_IPS+"2", nic_type: NETWORK_TYPE
-    v.vm.network :private_network, ip: K8S_SERVER_IPS+"2", virtualbox__intnet: "dc_network", :mac=> "001122334455", nic_type: NETWORK_TYPE
+    v.vm.network :private_network, :ip => USER_IPS+"2", :name => "user_internet",
+	         :nic_type => NETWORK_TYPE, :mode => "bridge", :dhcp_enabled => false, 
+		 :libvirt__forward_mode => "none", :libvirt__dhcp_enabled => false
+    v.vm.network :private_network, :ip => K8S_SERVER_IPS+"2", :name => "dc_network", 
+                 :mac=> "001122334455", :nic_type =>  NETWORK_TYPE, 
+		 :mode => "bridge", :dhcp_enabled=> false, 
+		 :libvirt__forward_mode => "none", :libvirt__dhcp_enabled => false
     v.vm.hostname = "router"
+    v.vm.provider :libvirt do |v|
+      v.cpus = 1
+      v.memory = 512
+    end
     v.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       v.linked_clone = true 
@@ -63,6 +73,10 @@ Vagrant.configure("2") do |config|
   config.vm.define "user" do |v|
     v.vm.network :private_network, ip: USER_IPS+"3", nic_type: NETWORK_TYPE
     v.vm.hostname = "user"
+    v.vm.provider :libvirt do |v|
+      v.cpus = 1
+      v.memory = 512
+    end
     v.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       v.linked_clone = true 
@@ -78,7 +92,14 @@ Vagrant.configure("2") do |config|
     config.vm.define "server-#{i}" do |server|
       server.vm.box = IMAGE
       server.vm.hostname = "server-#{i}"
-      server.vm.network  :private_network, ip: K8S_SERVER_IPS+"#{i+100}", virtualbox__intnet: "dc_network", nic_type: NETWORK_TYPE
+      server.vm.network  :private_network, :ip => K8S_SERVER_IPS+"#{i+100}", 
+                         :name => "dc_network", :nic_type => NETWORK_TYPE,
+			 :mode => "bridge", :dhcp_enabled=> false, 
+			 :libvirt__forward_mode => "none", :libvirt__dhcp_enabled => false
+      server.vm.provider :libvirt do |v|
+	v.cpus = 2
+	v.memory = K8S_SERVER_MEMORY
+      end
       server.vm.provider :virtualbox do |v|
 	v.customize ["modifyvm", :id, "--natdnshostresolver1", "on" ]
 	v.linked_clone = true 
@@ -103,7 +124,10 @@ Vagrant.configure("2") do |config|
     config.vm.define "node-#{i}" do |kubenodes|
       kubenodes.vm.box = IMAGE
       kubenodes.vm.hostname = "node-#{i}"
-      kubenodes.vm.network  :private_network, ip: K8S_NODE_IPS + "#{i+110}", virtualbox__intnet: "dc_network", nic_type: NETWORK_TYPE
+      kubenodes.vm.network  :private_network, :ip => K8S_NODE_IPS + "#{i+110}", 
+	                    :name => "dc_network", :nic_type => NETWORK_TYPE,
+			    :mode => "bridge", :dhcp_enabled=> false, 
+			    :libvirt__forward_mode => "none", :libvirt__dhcp_enabled => false
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa.pub", destination: "/tmp/id_rsa.pub"
       kubenodes.vm.provision "file", source: "./.ssh/id_rsa", destination: "/tmp/id_rsa"
       kubenodes.vm.provision "Force default route to the bgp router", type: "shell", run: "always", inline: $change_default_route 
