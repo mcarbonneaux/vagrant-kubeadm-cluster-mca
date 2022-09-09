@@ -4,6 +4,7 @@ metadata:
   name: test-lb
 spec:
   type: LoadBalancer
+  loadBalancerIP: 10.10.10.4
   ports:
   - port: 80
     targetPort: 80
@@ -26,6 +27,13 @@ spec:
       labels:
         svc: test-lb
     spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            svc: test-lb
       containers:
       - name: web
         image: nginx

@@ -25,7 +25,7 @@ K8S_NODE_IPS = "172.22.101."
 K8S_VERSION = "1.20.8"
 
 $change_default_route = <<-SCRIPT
-route add -net 172.22.100.0/24 gw 172.22.101.2 || true
+ip route add 172.22.100.0/24 via 172.22.101.2 || true
 exit 0
 SCRIPT
 
@@ -94,7 +94,7 @@ $routeaddwin = <<-SCRIPT
 SCRIPT
 
 $routeaddunix = <<-SCRIPT
-  route add -net 10.10.10.0/24 gw 172.22.100.2
+  ip route add 10.10.10.0/24 via 172.22.100.2
 SCRIPT
 
 $generatesshkey = <<-SCRIPT
