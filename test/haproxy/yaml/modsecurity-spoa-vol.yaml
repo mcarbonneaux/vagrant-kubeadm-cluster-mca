@@ -27,6 +27,13 @@ spec:
       labels:
         app: modsecurity-spoa
     spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: modsecurity-service
       containers:
       - name: modsecurity-spoa
         image: quay.io/jcmoraisjr/modsecurity-spoa
