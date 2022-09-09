@@ -71,6 +71,9 @@ test-lb      LoadBalancer   10.11.180.200   10.10.10.1    80:31490/TCP   46m
 
 You can seen your service as `LoadBalancer` with an `EXTERNAL-IP` as `10.10.10.1`.
 
+by default if loadBalancerIP are not specified the loadBalancerIP are selected from the first ip from bgp pool.
+To specify specific ip you must add loadBalancerIP with the ip in the services spec.
+
 The base principe is to use `LoadBalancer` type service:
 https://kubernetes.io/fr/docs/concepts/services-networking/service/#publishing-services-service-types
 
