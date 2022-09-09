@@ -5,7 +5,8 @@
 
 MASTER_COUNT = 3
 NODE_COUNT = 0 # change this value to add k8s node
-#IMAGE = "ubuntu/hirsute64"
+# liste of ubuntu lts : https://wiki.ubuntu.com/Releases
+# use last lts vagrant box from https://roboxes.org/
 IMAGE = "generic/ubuntu2104"
 NETWORK_TYPE = "82545EM"
 #NETWORK_TYPE = "virtio"
@@ -133,7 +134,7 @@ Vagrant.configure("2") do |config|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on",
                                     "--graphicscontroller", "vmsvga" ]
       v.linked_clone = true 
-      v.cpus = 1
+      v.cpus = 2
       v.memory = 512
     end
 
@@ -159,7 +160,7 @@ Vagrant.configure("2") do |config|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on",
                                     "--graphicscontroller", "vmsvga" ]
       v.linked_clone = true 
-      v.cpus = 1
+      v.cpus = 2
       v.memory = 512
     end
     v.vm.provision "add virtual ip", type: "shell", run: "always", inline: $addvirtualiptouser  

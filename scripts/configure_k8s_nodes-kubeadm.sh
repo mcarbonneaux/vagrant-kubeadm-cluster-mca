@@ -2,8 +2,10 @@
 
 . /vagrant/scripts/configure_function.sh
 
+disable_ipv6
+
 # update repository list
-apt-get update
+configure_update
 
 # install somme common tool needed
 apt-get -y  install \

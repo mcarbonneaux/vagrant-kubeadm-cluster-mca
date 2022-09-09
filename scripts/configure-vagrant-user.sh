@@ -1,6 +1,10 @@
 #!/bin/bash -e
 
-apt-get update
+. /vagrant/scripts/configure_function.sh
+
+disable_ipv6
+
+configure_update
 apt-get install -y bird2 traceroute
 
 cat >/etc/bird/bird.conf <<EOF

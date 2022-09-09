@@ -15,7 +15,7 @@ https://vincent.bernat.ch/en/blog/2018-multi-tier-loadbalancer
 # Prerequirist
 
 - [vagrant](https://www.vagrantup.com/downloads)
-- [virtualbox](https://www.virtualbox.org/wiki/Downloads)
+- [virtualbox](https://www.virtualbox.org/wiki/Downloads) (use 6.1.30 on windows)
 - [git](https://git-scm.com/download/win)
 
 # Start the cluster

@@ -1,3 +1,18 @@
+disable_ipv6 () {
+echo "net.ipv6.conf.all.disable_ipv6=1" >>/etc/sysctl.conf
+echo "net.ipv6.conf.default.disable_ipv6=1" >>/etc/sysctl.conf
+echo "net.ipv6.conf.lo.disable_ipv6=1" >>/etc/sysctl.conf
+sysctl -p
+}
+
+configure_update () {
+# on old ubuntu need to change the depository
+if [ -z "${VERSION_ID%21*}" ]; then
+sed -i -e 's/mirrors.edge.kernel.org\|archive.ubuntu.com\|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
+fi
+apt-get update
+}
+
 # add virtualbox share folder mount at reboot in crontab (without that when reboot the sharefolder are not mounted)
 vboxautomountatreboot () {
  echo "@reboot root command /usr/bin/mount /vagrant" >/etc/cron.d/vboxremount
@@ -151,7 +166,7 @@ no-hosts
 log-queries
 addn-hosts=/etc/dnsmasq.hosts
 server=/^((?!k8s).)*consul$/127.0.0.1#8600
-server=8.8.8.8
+server=9.9.9.9
 EOF
 
 
@@ -327,7 +342,7 @@ push_certificate () {
 
 pull_certificate () {
   set -x 
-  mkdir -p /etc/kubernetes/pki/ectd
+  mkdir -p /etc/kubernetes/pki/etcd
   cp -vrpf /vagrant/.pki/{apiserver,ca,sa,front-proxy-ca}.* /tmp
   cp -vrpf /vagrant/.pki/etcd/ca.* /etc/kubernetes/pki/etcd/
   set +x

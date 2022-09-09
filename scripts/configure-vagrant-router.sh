@@ -1,11 +1,15 @@
 #!/bin/bash -e
 
+. /vagrant/scripts/configure_function.sh
+
+disable_ipv6
+
 if ! grep -q '^net.ipv4.ip_forward' /etc/sysctl.conf; then
   echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-  sysctl -w net.ipv4.ip_forward=1
+  sysctl -p
 fi
 
-apt-get update
+configure_update
 apt-get install -y bird2
 
 cat >/etc/bird/bird.conf <<EOF
